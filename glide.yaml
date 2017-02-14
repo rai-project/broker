@@ -1,0 +1,26 @@
+package: github.com/rai-project/broker
+import:
+- package: github.com/Sirupsen/logrus
+  version: ~0.11.2
+- package: github.com/aws/aws-sdk-go
+  version: ~1.6.22
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/session
+  - service/sqs
+- package: github.com/k0kubun/pp
+  version: ~2.3.0
+- package: github.com/nsqio/go-nsq
+  version: ~1.0.6
+- package: github.com/pkg/errors
+  version: ~0.8.0
+- package: github.com/rai-project/config
+- package: github.com/rai-project/logger
+- package: github.com/rai-project/serializer
+  subpackages:
+  - bson
+  - json
+- package: github.com/rai-project/vipertags
+- package: github.com/spf13/viper
+- package: github.com/streadway/amqp
