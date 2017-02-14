@@ -8,7 +8,9 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/k0kubun/pp"
 	nsq "github.com/nsqio/go-nsq"
+	"github.com/pkg/errors"
 	"github.com/rai-project/broker"
 	"github.com/spf13/viper"
 )
@@ -82,7 +84,8 @@ func (b *nsqBroker) Connect() error {
 	for _, addr := range b.Options().Endpoints {
 		p, err := nsq.NewProducer(addr, b.config)
 		if err != nil {
-			return err
+			return errors.Wrapf(err,
+				"Failed to create new producer at address = %v", addr)
 		}
 		publishers = append(publishers, &publisher{p})
 	}
@@ -90,7 +93,8 @@ func (b *nsqBroker) Connect() error {
 	for _, subscriber := range b.subscribers {
 		err := subscriber.c.ConnectToNSQDs(b.Options().Endpoints)
 		if err != nil {
-			return err
+			return errors.Wrapf(err,
+				"Failed to connect to nsqd at address = %v", pp.Sprint(b.Options().Endpoints))
 		}
 	}
 
@@ -121,10 +125,14 @@ func (b *nsqBroker) Disconnect() error {
 }
 
 func (b *nsqBroker) Publish(queue string, msg *broker.Message, opts ...broker.PublishOption) error {
-	p := b.publishers[rand.Intn(len(b.publishers))]
+	lp := len(b.publishers)
+	if lp == 0 {
+		return errors.New("No publishers found")
+	}
+	p := b.publishers[rand.Intn(lp)]
 	bts, err := b.opts.Serializer.Marshal(msg)
 	if err != nil {
-		return nil
+		return errors.Wrap(err, "Failed to serialize message while trying to publish to queue")
 	}
 	return p.Publish(queue, bts)
 }
@@ -152,7 +160,8 @@ func (b *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 	consumer, err := nsq.NewConsumer(topic, channel, b.config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Failed to create new consumer on topic=%v and channel=%v", topic, channel)
 	}
 
 	nsqHandler := nsq.HandlerFunc(func(nm *nsq.Message) error {
@@ -162,7 +171,8 @@ func (b *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 		msg := new(broker.Message)
 		err := b.opts.Serializer.Unmarshal(nm.Body, msg)
 		if err != nil {
-			return err
+			return errors.Wrap(err,
+				"Failed to unmarshal message while handeling queue message")
 		}
 		return handler(&publication{
 			topic:   topic,
