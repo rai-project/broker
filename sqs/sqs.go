@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -122,9 +124,13 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 		AutoAck: Config.AutoAck,
 		Queue:   "",
 		Context: context.WithValue(
-			context.Background(),
-			concurrentHandlerCountKey,
-			DefaultConcurrentHandlerCount,
+			context.WithValue(
+				context.Background(),
+				concurrentHandlerCountKey,
+				DefaultConcurrentHandlerCount,
+			),
+			subscriptionTimeoutKey,
+			DefaultSubscriptionTimeout,
 		),
 	}
 
@@ -132,11 +138,14 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 		o(&options)
 	}
 
-	timeout := int64(1) // Second
+	timeout, ok := options.Context.Value(subscriptionTimeoutKey).(int64)
+	if !ok {
+		timeout = DefaultSubscriptionTimeout
+	}
 
 	concurrentHandlerCount0, ok := options.Context.Value(concurrentHandlerCountKey).(int)
 	if !ok {
-		concurrentHandlerCount0 = 1
+		concurrentHandlerCount0 = DefaultConcurrentHandlerCount
 	}
 	concurrentHandlerCount := int64(concurrentHandlerCount0)
 
@@ -169,6 +178,8 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 				})
 				if err != nil {
 					log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
+					// Sleep for half a second
+					time.Sleep(time.Second / 2)
 					continue
 				}
 
