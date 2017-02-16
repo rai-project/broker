@@ -16,7 +16,6 @@ type sqsBroker struct {
 	sync.Mutex
 	isRunning bool
 	session   *session.Session
-	svc       *sqs.SQS
 	opts      broker.Options
 }
 
@@ -32,10 +31,16 @@ func New(opts ...broker.Option) broker.Broker {
 		o(&options)
 	}
 
+	// Initialize a session that the SDK will use to load configuration,
+	// credentials, and region from the shared config file. (~/.aws/config).
+	sess, err := raiaws.NewSession()
+	if err != nil {
+		return nil
+	}
+
 	return &sqsBroker{
 		isRunning: false,
-		session:   nil,
-		svc:       nil,
+		session:   sess,
 		opts:      options,
 	}
 }
@@ -54,22 +59,6 @@ func (b *sqsBroker) Connect() error {
 		return nil
 	}
 
-	// Initialize a session that the SDK will use to load configuration,
-	// credentials, and region from the shared config file. (~/.aws/config).
-	sess, err := raiaws.NewSession()
-	if err != nil {
-		return err
-	}
-	b.session = sess
-
-	// Create a SQS service client.
-	if len(b.opts.Endpoints) == 0 {
-		return errors.New("Invalid sqs endpoint")
-	}
-	endpoint := b.opts.Endpoints[0]
-	svc := sqs.New(sess, aws.NewConfig().WithEndpoint(endpoint))
-	b.svc = svc
-
 	b.isRunning = true
 
 	return nil
@@ -85,19 +74,34 @@ func (b *sqsBroker) Disconnect() error {
 
 }
 
+func (b *sqsBroker) svc() (*sqs.SQS, error) {
+	// Create a SQS service client.
+	if len(b.opts.Endpoints) == 0 {
+		return nil, errors.New("Invalid sqs endpoint")
+	}
+	endpoint := b.opts.Endpoints[0]
+	svc := sqs.New(b.session, aws.NewConfig().WithEndpoint(endpoint))
+	return svc, nil
+}
+
 func (b *sqsBroker) Publish(queue string, msg *broker.Message, opts ...broker.PublishOption) error {
+	svc, err := b.svc()
+	if err != nil {
+		return err
+	}
+
 	bts, err := b.opts.Serializer.Marshal(msg)
 	if err != nil {
 		return errors.Wrap(err, "Failed to serialize message while trying to publish to queue")
 	}
-	resultURL, err := b.svc.GetQueueUrl(&sqs.GetQueueUrlInput{
+	resultURL, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: aws.String(queue),
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Unable to queue %v.", queue)
 	}
 
-	_, err = b.svc.SendMessage(&sqs.SendMessageInput{
+	_, err = svc.SendMessage(&sqs.SendMessageInput{
 		QueueUrl:    resultURL.QueueUrl,
 		MessageBody: aws.String(string(bts)),
 	})
@@ -108,6 +112,11 @@ func (b *sqsBroker) Publish(queue string, msg *broker.Message, opts ...broker.Pu
 }
 
 func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
+
+	svc, err := b.svc()
+	if err != nil {
+		return nil, err
+	}
 
 	options := broker.SubscribeOptions{
 		AutoAck: Config.AutoAck,
@@ -131,7 +140,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	}
 	concurrentHandlerCount := int64(concurrentHandlerCount0)
 
-	resultURL, err := b.svc.GetQueueUrl(&sqs.GetQueueUrlInput{
+	resultURL, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: aws.String(topic),
 	})
 	if err != nil {
@@ -147,7 +156,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 				return
 			default:
 				// Receive a message from the SQS queue with long polling enabled.
-				result, err := b.svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+				result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 					QueueUrl: resultURL.QueueUrl,
 					AttributeNames: aws.StringSlice([]string{
 						"SentTimestamp",
@@ -165,7 +174,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 				if !options.AutoAck {
 					for _, msg := range result.Messages {
-						b.svc.DeleteMessage(&sqs.DeleteMessageInput{
+						svc.DeleteMessage(&sqs.DeleteMessageInput{
 							QueueUrl:      resultURL.QueueUrl,
 							ReceiptHandle: msg.ReceiptHandle,
 						})
@@ -181,7 +190,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 					}
 
 					handler(&publication{
-						svc:           b.svc,
+						svc:           svc,
 						topic:         topic,
 						m:             msg,
 						nm:            m,
