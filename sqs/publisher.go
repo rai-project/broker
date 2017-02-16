@@ -25,9 +25,9 @@ func (p *publication) Message() *broker.Message {
 }
 
 func (p *publication) Ack() error {
-	p.svc.DeleteMessage(&sqs.DeleteMessageInput{
+	_, err := p.svc.DeleteMessage(&sqs.DeleteMessageInput{
 		QueueUrl:      aws.String(p.queueUrl),
 		ReceiptHandle: aws.String(p.receiptHandle),
 	})
-	return nil
+	return err
 }
