@@ -1,5 +1,5 @@
 hash: e04b55551242751be8248fa676fd4dd370bc4c53c1960003e5df66fe2903f38b
-updated: 2017-02-22T18:29:17.004372405-06:00
+updated: 2017-02-22T18:32:45.097080449-06:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
@@ -75,13 +75,13 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/rai-project/aws
-  version: 3210864a4413d39bd567bedf6964763037ded1aa
+  version: a1f76777f639e89c32a9f653355e1fc2c2d9eedc
 - name: github.com/rai-project/config
-  version: 0e314b8ace535477c437c3dd3ac5c0bf23f55eb9
+  version: 6c3f625b8d8fe37eb9f082600745bcd9c64a80ee
 - name: github.com/rai-project/godotenv
   version: 726cc8b906e3d31c70a9671c90a13716a8d3f50d
 - name: github.com/rai-project/logger
-  version: 5bf48710226f520f0df1f3a367319b7d8c7298fd
+  version: 603c4893a5f11e787f6e9ee1b8f59cbc45a4a631
 - name: github.com/rai-project/serializer
   version: 668c12590837f1fa2d1e554293934e25f604e347
   subpackages:
