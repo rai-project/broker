@@ -1,7 +1,7 @@
 package: github.com/rai-project/broker
 import:
 - package: github.com/Sirupsen/logrus
-  version: ~0.11.2
+  version: ~0.11.4
 - package: github.com/aws/aws-sdk-go
   version: ~1.6.22
   subpackages:
