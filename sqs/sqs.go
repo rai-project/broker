@@ -83,12 +83,10 @@ func (b *sqsBroker) Disconnect() error {
 }
 
 func (b *sqsBroker) svc() (*sqs.SQS, error) {
-	// Create a SQS service client.
-	if len(b.opts.Endpoints) == 0 {
-		return nil, errors.New("Invalid sqs endpoint")
-	}
-	endpoint := b.opts.Endpoints[0]
-	svc := sqs.New(b.session, aws.NewConfig().WithEndpoint(endpoint))
+	b.session.Config.WithCredentialsChainVerboseErrors(true)
+	cnf := aws.NewConfig().WithRegion(Config.Region)
+	svc := sqs.New(b.session, cnf)
+
 	return svc, nil
 }
 

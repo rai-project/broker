@@ -17,6 +17,7 @@ type sqsConfig struct {
 	SerializerName string                `json:"serializer_name" config:"broker.serializer" default:"json"`
 	Endpoints      []string              `json:"endpoints" config:"broker.endpoints"`
 	AutoAck        bool                  `json:"autoack" config:"broker.autoack" default:"true"`
+	Region         string                `json:"region" config:"broker.region" default:"us-east-1"`
 }
 
 var (
