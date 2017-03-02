@@ -21,7 +21,7 @@ type sqsBroker struct {
 	opts      broker.Options
 }
 
-func New(opts ...broker.Option) broker.Broker {
+func New(opts ...broker.Option) (broker.Broker, error) {
 
 	options := broker.Options{
 		Endpoints:  Config.Endpoints,
@@ -33,18 +33,24 @@ func New(opts ...broker.Option) broker.Broker {
 		o(&options)
 	}
 
-	// Initialize a session that the SDK will use to load configuration,
-	// credentials, and region from the shared config file. (~/.aws/config).
-	sess, err := raiaws.NewSession()
-	if err != nil {
-		return nil
+	var sess *session.Session
+	if s, ok := options.Context.Value(sessionKey).(*session.Session); ok {
+		sess = s
+	} else {
+		var err error
+		// Initialize a session that the SDK will use to load configuration,
+		// credentials, and region from the shared config file. (~/.aws/config).
+		sess, err = raiaws.NewSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &sqsBroker{
 		isRunning: false,
 		session:   sess,
 		opts:      options,
-	}
+	}, nil
 }
 
 func (b *sqsBroker) Options() broker.Options {
