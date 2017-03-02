@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
@@ -24,7 +25,6 @@ type sqsBroker struct {
 func New(opts ...broker.Option) (broker.Broker, error) {
 
 	options := broker.Options{
-		Endpoints:  Config.Endpoints,
 		Serializer: Config.Serializer,
 		Context:    context.Background(),
 	}
@@ -83,10 +83,7 @@ func (b *sqsBroker) Disconnect() error {
 }
 
 func (b *sqsBroker) svc() (*sqs.SQS, error) {
-	b.session.Config.WithCredentialsChainVerboseErrors(true)
-	cnf := aws.NewConfig().WithRegion(Config.Region)
-	svc := sqs.New(b.session, cnf)
-
+	svc := sqs.New(b.session)
 	return svc, nil
 }
 
@@ -153,9 +150,21 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	}
 	concurrentHandlerCount := int64(concurrentHandlerCount0)
 
+	queueName, ok := b.opts.Context.Value(queueNameKey).(string)
+	if !ok {
+		return nil, errors.New("cannot find queue name. make sure to set it when initializing sqs")
+	}
+
 	resultURL, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: aws.String(topic),
+		QueueName: aws.String(queueName),
 	})
+	if awsErr, ok := err.(awserr.Error); ok {
+		log.Printf("ERROR Found %s", awsErr.Code())
+		if "AWS.SimpleQueueService.NonExistentQueue" == awsErr.Code() {
+			log.Printf("SQS Queue (%s) not found", topic)
+			return nil, awsErr
+		}
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to queue %v.", topic)
 	}

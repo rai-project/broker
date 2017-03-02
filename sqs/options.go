@@ -10,6 +10,7 @@ import (
 
 const (
 	sessionKey                = "github.com/rai-project/broker/sqs/session"
+	queueNameKey              = "github.com/rai-project/broker/sqs/queueName"
 	concurrentHandlerCountKey = "github.com/rai-project/broker/sqs/concurrentHandlerCount"
 	subscriptionTimeoutKey    = "github.com/rai-project/broker/sqs/subscriptionTimeout"
 )
@@ -22,6 +23,12 @@ var (
 func Session(sess *session.Session) broker.Option {
 	return func(o *broker.Options) {
 		o.Context = context.WithValue(o.Context, sessionKey, sess)
+	}
+}
+
+func QueueName(q string) broker.Option {
+	return func(o *broker.Options) {
+		o.Context = context.WithValue(o.Context, queueNameKey, q)
 	}
 }
 
