@@ -196,12 +196,15 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 					continue
 				}
 
-				if !options.AutoAck {
+				if options.AutoAck {
 					for _, msg := range result.Messages {
-						svc.DeleteMessage(&sqs.DeleteMessageInput{
+						_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
 							QueueUrl:      resultURL.QueueUrl,
 							ReceiptHandle: msg.ReceiptHandle,
 						})
+						if err != nil {
+							log.WithError(err).Error("Failed to delete message")
+						}
 					}
 				}
 
