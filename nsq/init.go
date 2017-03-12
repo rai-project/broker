@@ -12,10 +12,8 @@ var (
 )
 
 func init() {
-	config.OnInit(func() {
-		log = logger.New().WithField("pkg", "nsq")
-	})
 	config.AfterInit(func() {
+		log = logger.New().WithField("pkg", "nsq")
 		broker.Standard = New()
 	})
 }

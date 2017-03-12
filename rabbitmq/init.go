@@ -12,10 +12,8 @@ var (
 )
 
 func init() {
-	config.OnInit(func() {
-		log = logger.New().WithField("pkg", "rabbitmq")
-	})
 	config.AfterInit(func() {
+		log = logger.New().WithField("pkg", "rabbitmq")
 		broker.Standard = New()
 	})
 }
