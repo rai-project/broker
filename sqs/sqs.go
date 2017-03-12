@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	raiaws "github.com/rai-project/aws"
 	"github.com/rai-project/broker"
+	ctx "github.com/rai-project/context"
 )
 
 type sqsBroker struct {
@@ -124,15 +125,15 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	options := broker.SubscribeOptions{
 		AutoAck: Config.AutoAck,
 		Queue:   "",
-		Context: context.WithValue(
-			context.WithValue(
-				context.Background(),
+		Context: ctx.Background().
+			WithValue(
 				concurrentHandlerCountKey,
 				DefaultConcurrentHandlerCount,
+			).
+			WithValue(
+				subscriptionTimeoutKey,
+				DefaultSubscriptionTimeout,
 			),
-			subscriptionTimeoutKey,
-			DefaultSubscriptionTimeout,
-		),
 	}
 
 	for _, o := range opts {

@@ -13,6 +13,7 @@ const (
 	queueNameKey              = "github.com/rai-project/broker/sqs/queueName"
 	concurrentHandlerCountKey = "github.com/rai-project/broker/sqs/concurrentHandlerCount"
 	subscriptionTimeoutKey    = "github.com/rai-project/broker/sqs/subscriptionTimeout"
+	maxInFlightKey            = "github.com/rai-project/broker/sqs/maxInFlight"
 )
 
 var (
@@ -41,5 +42,11 @@ func ConcurrentHandlerCount(n int) broker.SubscribeOption {
 func SubscriptionTimeout(d time.Duration) broker.SubscribeOption {
 	return func(o *broker.SubscribeOptions) {
 		o.Context = context.WithValue(o.Context, subscriptionTimeoutKey, int64(d.Seconds()))
+	}
+}
+
+func MaxInFlight(n int) broker.Option {
+	return func(o *broker.Options) {
+		o.Context = context.WithValue(o.Context, maxInFlightKey, n)
 	}
 }

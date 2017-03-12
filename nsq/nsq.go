@@ -1,7 +1,6 @@
 package nsq
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	nsq "github.com/nsqio/go-nsq"
 	"github.com/pkg/errors"
 	"github.com/rai-project/broker"
+	"github.com/rai-project/context"
 	"github.com/spf13/viper"
 )
 
@@ -142,11 +142,11 @@ func (b *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	options := broker.SubscribeOptions{
 		AutoAck: Config.AutoAck,
 		Queue:   "",
-		Context: context.WithValue(
-			context.Background(),
-			concurrentHandlerCountKey,
-			DefaultConcurrentHandlerCount,
-		),
+		Context: context.Background().
+			WithValue(
+				concurrentHandlerCountKey,
+				DefaultConcurrentHandlerCount,
+			),
 	}
 
 	for _, o := range opts {
