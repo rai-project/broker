@@ -12,22 +12,26 @@ import (
 )
 
 type sqsConfig struct {
-	Provider       string                `json:"provider" config:"broker.provider" default:"sqs"`
+	Provider       string                `json:"provider" config:"broker.provider"`
 	Serializer     serializer.Serializer `json:"-" config:"-"`
 	SerializerName string                `json:"serializer_name" config:"broker.serializer" default:"json"`
 	AutoAck        bool                  `json:"autoack" config:"broker.autoack" default:"true"`
 	Region         string                `json:"region" config:"broker.region" default:"us-east-1"`
+	done           chan struct{}         `json:"-" config:"-"`
 }
 
 var (
-	Config = &sqsConfig{}
+	Config = &sqsConfig{
+		done: make(chan struct{}),
+	}
 )
 
 func (sqsConfig) ConfigName() string {
 	return "SQS"
 }
 
-func (sqsConfig) SetDefaults() {
+func (a *sqsConfig) SetDefaults() {
+	vipertags.SetDefaults(a)
 }
 
 func (a *sqsConfig) Read() {
@@ -41,6 +45,10 @@ func (a *sqsConfig) Read() {
 		log.WithField("serializer", a.SerializerName).
 			Warn("Cannot find serializer")
 	}
+}
+
+func (c sqsConfig) Wait() {
+	<-c.done
 }
 
 func (c sqsConfig) String() string {

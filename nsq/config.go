@@ -12,7 +12,7 @@ import (
 )
 
 type nsqConfig struct {
-	Provider            string                `json:"provider" config:"broker.provider" default:"nsq"`
+	Provider            string                `json:"provider" config:"broker.provider"`
 	Serializer          serializer.Serializer `json:"-" config:"-"`
 	SerializerName      string                `json:"serializer_name" config:"broker.serializer" default:"json"`
 	NsqdEndpoints       []string              `json:"nsqd_endpoints" config:"broker.nsqd_endpoints"`
@@ -21,17 +21,21 @@ type nsqConfig struct {
 	ConcurrentHandlers  int                   `json:"concurrent_handlers" config:"broker.concurrent_handlers" default:"1"`
 	AutoAck             bool                  `json:"autoack" config:"broker.autoack" default:"true"`
 	Ephemeral           bool                  `json:"ephemeral" config:"broker.ephemeral" default:"false"`
+	done                chan struct{}         `json:"-" config:"-"`
 }
 
 var (
-	Config = &nsqConfig{}
+	Config = &nsqConfig{
+		done: make(chan struct{}),
+	}
 )
 
 func (nsqConfig) ConfigName() string {
 	return "NSQ"
 }
 
-func (nsqConfig) SetDefaults() {
+func (a *nsqConfig) SetDefaults() {
+	vipertags.SetDefaults(a)
 }
 
 func (a *nsqConfig) Read() {
@@ -45,6 +49,10 @@ func (a *nsqConfig) Read() {
 		log.WithField("serializer", a.SerializerName).
 			Warn("Cannot find serializer")
 	}
+}
+
+func (c nsqConfig) Wait() {
+	<-c.done
 }
 
 func (c nsqConfig) String() string {

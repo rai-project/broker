@@ -12,24 +12,28 @@ import (
 )
 
 type rabbitmqConfig struct {
-	Provider            string                `json:"provider" config:"broker.provider" default:"rabbitmq"`
+	Provider            string                `json:"provider" config:"broker.provider"`
 	Serializer          serializer.Serializer `json:"-" config:"-"`
 	SerializerName      string                `json:"serializer_name" config:"broker.serializer" default:"json"`
 	Endpoints           []string              `json:"endpoints" config:"broker.endpoints"`
 	NsqLookupdEndpoints []string              `json:"nsqlookupd_endpoints" config:"broker.nsqlookupd_endpoints"`
 	CACertificate       string                `json:"ca_certificate" config:"broker.ca_certificate"`
 	AutoAck             bool                  `json:"autoack" config:"broker.autoack" default:"true"`
+	done                chan struct{}         `json:"-" config:"-"`
 }
 
 var (
-	Config = &rabbitmqConfig{}
+	Config = &rabbitmqConfig{
+		done: make(chan struct{}),
+	}
 )
 
 func (rabbitmqConfig) ConfigName() string {
 	return "RabbitMQ"
 }
 
-func (rabbitmqConfig) SetDefaults() {
+func (a *rabbitmqConfig) SetDefaults() {
+	vipertags.SetDefaults(a)
 }
 
 func (a *rabbitmqConfig) Read() {
@@ -43,6 +47,10 @@ func (a *rabbitmqConfig) Read() {
 		log.WithField("serializer", a.SerializerName).
 			Warn("Cannot find serializer")
 	}
+}
+
+func (c rabbitmqConfig) Wait() {
+	<-c.done
 }
 
 func (c rabbitmqConfig) String() string {
