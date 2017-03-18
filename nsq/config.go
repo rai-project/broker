@@ -39,6 +39,7 @@ func (a *nsqConfig) SetDefaults() {
 }
 
 func (a *nsqConfig) Read() {
+	defer close(a.done)
 	vipertags.Fill(a)
 	switch strings.ToLower(a.SerializerName) {
 	case "json":

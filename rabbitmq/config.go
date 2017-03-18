@@ -37,6 +37,7 @@ func (a *rabbitmqConfig) SetDefaults() {
 }
 
 func (a *rabbitmqConfig) Read() {
+	defer close(a.done)
 	vipertags.Fill(a)
 	switch strings.ToLower(a.SerializerName) {
 	case "json":

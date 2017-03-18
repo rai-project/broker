@@ -35,6 +35,7 @@ func (a *sqsConfig) SetDefaults() {
 }
 
 func (a *sqsConfig) Read() {
+	defer close(a.done)
 	vipertags.Fill(a)
 	switch strings.ToLower(a.SerializerName) {
 	case "json":
