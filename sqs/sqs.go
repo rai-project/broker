@@ -188,7 +188,9 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 					MessageAttributeNames: aws.StringSlice([]string{
 						"All",
 					}),
-					WaitTimeSeconds: aws.Int64(timeout),
+					WaitTimeSeconds:   aws.Int64(timeout),
+					VisibilityTimeout: aws.Int64(10 /* seconds */),
+					WaitTimeSeconds:   aws.Int64(5 /* seconds */),
 				})
 				if err != nil {
 					log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
