@@ -1,13 +1,11 @@
 package sqs
 
 import (
-	"strings"
-
 	"github.com/k0kubun/pp"
 	"github.com/rai-project/config"
 	"github.com/rai-project/serializer"
-	"github.com/rai-project/serializer/bson"
-	"github.com/rai-project/serializer/json"
+	_ "github.com/rai-project/serializer/bson"
+	_ "github.com/rai-project/serializer/json"
 	"github.com/rai-project/vipertags"
 )
 
@@ -37,15 +35,7 @@ func (a *sqsConfig) SetDefaults() {
 func (a *sqsConfig) Read() {
 	defer close(a.done)
 	vipertags.Fill(a)
-	switch strings.ToLower(a.SerializerName) {
-	case "json":
-		a.Serializer = json.New()
-	case "bson":
-		a.Serializer = bson.New()
-	default:
-		log.WithField("serializer", a.SerializerName).
-			Warn("Cannot find serializer")
-	}
+	a.Serializer, _ = serializer.FromName(a.SerializerName)
 }
 
 func (c sqsConfig) Wait() {
