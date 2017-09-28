@@ -23,6 +23,7 @@ type sqsBroker struct {
 	opts      broker.Options
 }
 
+// New ...
 func New(opts ...broker.Option) (broker.Broker, error) {
 
 	options := broker.Options{
@@ -54,12 +55,14 @@ func New(opts ...broker.Option) (broker.Broker, error) {
 	}, nil
 }
 
+// Options ...
 func (b *sqsBroker) Options() broker.Options {
 	b.Lock()
 	defer b.Unlock()
 	return b.opts
 }
 
+// Connect ...
 func (b *sqsBroker) Connect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -73,6 +76,7 @@ func (b *sqsBroker) Connect() error {
 	return nil
 }
 
+// Disconnect ...
 func (b *sqsBroker) Disconnect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -88,6 +92,7 @@ func (b *sqsBroker) svc() (*sqs.SQS, error) {
 	return svc, nil
 }
 
+// Publish ...
 func (b *sqsBroker) Publish(queue string, msg *broker.Message, opts ...broker.PublishOption) error {
 	svc, err := b.svc()
 	if err != nil {
@@ -115,6 +120,7 @@ func (b *sqsBroker) Publish(queue string, msg *broker.Message, opts ...broker.Pu
 	return nil
 }
 
+// Subscribe ...
 func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 
 	svc, err := b.svc()
@@ -238,6 +244,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	}, nil
 }
 
+// Name ...
 func (b *sqsBroker) Name() string {
 	return "sqs"
 }

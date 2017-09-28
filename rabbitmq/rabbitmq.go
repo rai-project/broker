@@ -20,6 +20,7 @@ type rabbitmqBroker struct {
 	conn        *amqp.Connection
 }
 
+// New ...
 func New(opts ...broker.Option) broker.Broker {
 
 	var tlsConf *tls.Config = nil
@@ -56,12 +57,14 @@ func New(opts ...broker.Option) broker.Broker {
 	}
 }
 
+// Options ...
 func (b *rabbitmqBroker) Options() broker.Options {
 	b.Lock()
 	defer b.Unlock()
 	return b.opts
 }
 
+// Connect ...
 func (b *rabbitmqBroker) Connect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -78,6 +81,7 @@ func (b *rabbitmqBroker) Connect() error {
 	return nil
 }
 
+// Disconnect ...
 func (b *rabbitmqBroker) Disconnect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -91,6 +95,7 @@ func (b *rabbitmqBroker) Disconnect() error {
 	return
 }
 
+// Name ...
 func (b *rabbitmqBroker) Name() string {
 	return "rabbitmq"
 }

@@ -22,34 +22,41 @@ type nsqConfig struct {
 	done                chan struct{}         `json:"-" config:"-"`
 }
 
+// Config ...
 var (
 	Config = &nsqConfig{
 		done: make(chan struct{}),
 	}
 )
 
+// ConfigName ...
 func (nsqConfig) ConfigName() string {
 	return "NSQ"
 }
 
+// SetDefaults ...
 func (a *nsqConfig) SetDefaults() {
 	vipertags.SetDefaults(a)
 }
 
+// Read ...
 func (a *nsqConfig) Read() {
 	defer close(a.done)
 	vipertags.Fill(a)
 	a.Serializer, _ = serializer.FromName(a.SerializerName)
 }
 
+// Wait ...
 func (c nsqConfig) Wait() {
 	<-c.done
 }
 
+// String ...
 func (c nsqConfig) String() string {
 	return pp.Sprintln(c)
 }
 
+// Debug ...
 func (c nsqConfig) Debug() {
 	log.Debug("NSQ Config = ", c)
 }

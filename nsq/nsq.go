@@ -24,6 +24,7 @@ type nsqBroker struct {
 	config      *nsq.Config
 }
 
+// New ...
 func New(opts ...broker.Option) broker.Broker {
 
 	var tlsConf *tls.Config = nil
@@ -66,12 +67,14 @@ func New(opts ...broker.Option) broker.Broker {
 	}
 }
 
+// Options ...
 func (b *nsqBroker) Options() broker.Options {
 	b.Lock()
 	defer b.Unlock()
 	return b.opts
 }
 
+// Connect ...
 func (b *nsqBroker) Connect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -101,6 +104,7 @@ func (b *nsqBroker) Connect() error {
 	return nil
 }
 
+// Disconnect ...
 func (b *nsqBroker) Disconnect() error {
 	b.Lock()
 	defer b.Unlock()
@@ -124,6 +128,7 @@ func (b *nsqBroker) Disconnect() error {
 
 }
 
+// Publish ...
 func (b *nsqBroker) Publish(queue string, msg *broker.Message, opts ...broker.PublishOption) error {
 	lp := len(b.publishers)
 	if lp == 0 {
@@ -137,6 +142,7 @@ func (b *nsqBroker) Publish(queue string, msg *broker.Message, opts ...broker.Pu
 	return p.Publish(queue, bts)
 }
 
+// Subscribe ...
 func (b *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 
 	options := broker.SubscribeOptions{
@@ -197,6 +203,7 @@ func (b *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	}, nil
 }
 
+// Name ...
 func (b *nsqBroker) Name() string {
 	return "nsq"
 }

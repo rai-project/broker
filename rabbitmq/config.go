@@ -21,34 +21,41 @@ type rabbitmqConfig struct {
 	done                chan struct{}         `json:"-" config:"-"`
 }
 
+// Config ...
 var (
 	Config = &rabbitmqConfig{
 		done: make(chan struct{}),
 	}
 )
 
+// ConfigName ...
 func (rabbitmqConfig) ConfigName() string {
 	return "RabbitMQ"
 }
 
+// SetDefaults ...
 func (a *rabbitmqConfig) SetDefaults() {
 	vipertags.SetDefaults(a)
 }
 
+// Read ...
 func (a *rabbitmqConfig) Read() {
 	defer close(a.done)
 	vipertags.Fill(a)
 	a.Serializer, _ = serializer.FromName(a.SerializerName)
 }
 
+// Wait ...
 func (c rabbitmqConfig) Wait() {
 	<-c.done
 }
 
+// String ...
 func (c rabbitmqConfig) String() string {
 	return pp.Sprintln(c)
 }
 
+// Debug ...
 func (c rabbitmqConfig) Debug() {
 	log.Debug("RabbitMQ Config = ", c)
 }

@@ -13,14 +13,17 @@ type publication struct {
 	opts    broker.PublishOptions
 }
 
+// Topic ...
 func (p *publication) Topic() string {
 	return p.topic
 }
 
+// Message ...
 func (p *publication) Message() *broker.Message {
 	return p.m
 }
 
+// Ack ...
 func (p *publication) Ack() error {
 	p.nm.Finish()
 	return nil

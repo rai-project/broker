@@ -18,34 +18,41 @@ type sqsConfig struct {
 	done           chan struct{}         `json:"-" config:"-"`
 }
 
+// Config ...
 var (
 	Config = &sqsConfig{
 		done: make(chan struct{}),
 	}
 )
 
+// ConfigName ...
 func (sqsConfig) ConfigName() string {
 	return "SQS"
 }
 
+// SetDefaults ...
 func (a *sqsConfig) SetDefaults() {
 	vipertags.SetDefaults(a)
 }
 
+// Read ...
 func (a *sqsConfig) Read() {
 	defer close(a.done)
 	vipertags.Fill(a)
 	a.Serializer, _ = serializer.FromName(a.SerializerName)
 }
 
+// Wait ...
 func (c sqsConfig) Wait() {
 	<-c.done
 }
 
+// String ...
 func (c sqsConfig) String() string {
 	return pp.Sprintln(c)
 }
 
+// Debug ...
 func (c sqsConfig) Debug() {
 	log.Debug("SQS Config = ", c)
 }

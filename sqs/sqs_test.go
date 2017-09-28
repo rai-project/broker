@@ -85,6 +85,7 @@ func test() error {
 	return nil
 }
 
+// TestSQS ...
 func TestSQS(t *testing.T) {
 	config.Init()
 	assert.NoError(t, test())
