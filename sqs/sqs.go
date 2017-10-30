@@ -107,7 +107,7 @@ func (b *sqsBroker) Publish(queue string, msg *broker.Message, opts ...broker.Pu
 		QueueName: aws.String(queue),
 	})
 	if err != nil {
-		return errors.Wrapf(err, "Unable to queue %v.", queue)
+		return errors.Wrapf(err, "Unable to get queue URL for %v.", queue)
 	}
 
 	_, err = svc.SendMessage(&sqs.SendMessageInput{
