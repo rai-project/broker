@@ -29,13 +29,6 @@ func Session(sess *session.Session) broker.Option {
 	}
 }
 
-// QueueName ...
-// func QueueName(q string) broker.Option {
-// 	return func(o *broker.Options) {
-// 		o.Context = context.WithValue(o.Context, queueNameKey, q)
-// 	}
-// }
-
 // ConcurrentHandlerCount ...
 func ConcurrentHandlerCount(n int) broker.SubscribeOption {
 	return func(o *broker.SubscribeOptions) {
