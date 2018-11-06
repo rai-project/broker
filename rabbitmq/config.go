@@ -14,8 +14,7 @@ type rabbitmqConfig struct {
 	Provider            string                `json:"provider" config:"broker.provider"`
 	Serializer          serializer.Serializer `json:"-" config:"-"`
 	SerializerName      string                `json:"serializer_name" config:"broker.serializer" default:"json"`
-	Endpoints           []string              `json:"endpoints" config:"broker.endpoints"`
-	NsqLookupdEndpoints []string              `json:"nsqlookupd_endpoints" config:"broker.nsqlookupd_endpoints"`
+	RabbitMQEndpoints   []string              `json:"rabbitmq_endpoints" config:"broker.rabbitmq_endpoints"`
 	CACertificate       string                `json:"ca_certificate" config:"broker.ca_certificate"`
 	AutoAck             bool                  `json:"autoack" config:"broker.autoack" default:"true"`
 	done                chan struct{}         `json:"-" config:"-"`
