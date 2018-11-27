@@ -206,7 +206,6 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 					if result.Messages != nil {
 						*options.Available_Workers -= 1
-						println(*options.Available_Workers)
 					}
 
 					if err != nil {
