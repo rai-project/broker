@@ -14,7 +14,6 @@ const (
 	concurrentHandlerCountKey = "github.com/rai-project/broker/sqs/concurrentHandlerCount"
 	subscriptionTimeoutKey    = "github.com/rai-project/broker/sqs/subscriptionTimeout"
 	maxInFlightKey            = "github.com/rai-project/broker/sqs/maxInFlight"
-	availableWorkersKey       = "github.com/rai-project/broker/sqs/availableWorkers"
 )
 
 // DefaultConcurrentHandlerCount ...
@@ -55,12 +54,5 @@ func SubscriptionTimeout(d time.Duration) broker.SubscribeOption {
 func MaxInFlight(n int) broker.Option {
 	return func(o *broker.Options) {
 		o.Context = context.WithValue(o.Context, maxInFlightKey, n)
-	}
-}
-
-// Available workers
-func AvailableWorkers(n *int) broker.Option {
-	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, availableWorkersKey, n)
 	}
 }
