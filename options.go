@@ -14,7 +14,6 @@ type Options struct {
 	Secure            bool
 	TLSConfig         *tls.Config
 	Context           context.Context
-	Available_Workers *int
 }
 
 // Option ...
@@ -61,7 +60,6 @@ type SubscribeOptions struct {
 	AutoAck           bool
 	Queue             string
 	Context           context.Context
-	Available_Workers *int
 }
 
 // SubscribeOption ...
