@@ -211,7 +211,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 				if result.Messages != nil {
 					b.Lock()
-					options.AvailableWorkers -= 1
+					options.AvailableWorkers--
 					b.Unlock()
 				}
 
