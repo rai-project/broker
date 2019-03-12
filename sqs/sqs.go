@@ -36,7 +36,11 @@ func New(opts ...broker.Option) (broker.Broker, error) {
 	}
 
 	//Set Available Workers
-	options.Available_Workers = options.Context.Value(availableWorkersKey).(*int)
+	if availableWorkers, ok := options.Context.Value(availableWorkersKey).(int); ok {
+		options.AvailableWorkers = availableWorkers
+	} else {
+		options.AvailableWorkers = 1
+	}
 
 	var sess *session.Session
 	if s, ok := options.Context.Value(sessionKey).(*session.Session); ok {
@@ -143,7 +147,7 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 				subscriptionTimeoutKey,
 				DefaultSubscriptionTimeout,
 			),
-		Available_Workers: b.opts.Available_Workers,
+		AvailableWorkers: b.opts.AvailableWorkers,
 	}
 
 	for _, o := range opts {
@@ -183,67 +187,69 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	cancelCtx, cancelFunc := context.WithCancel(options.Context)
 
 	go func() {
-
 		for {
 			select {
 			case <-cancelCtx.Done():
 				return
+			case options.AvailableWorkers <= 0:
+				time.Sleep(time.Second / 2)
+				continue
 			default:
-				if *options.Available_Workers > 0 {
-					// Receive a message from the SQS queue with long polling enabled.
-					result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
-						QueueUrl: resultURL.QueueUrl,
-						AttributeNames: aws.StringSlice([]string{
-							"SentTimestamp",
-						}),
-						MaxNumberOfMessages: aws.Int64(concurrentHandlerCount),
-						MessageAttributeNames: aws.StringSlice([]string{
-							"All",
-						}),
-						WaitTimeSeconds:   aws.Int64(timeout),
-						VisibilityTimeout: aws.Int64(10 /* seconds */),
-					})
+				// Receive a message from the SQS queue with long polling enabled.
+				result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+					QueueUrl: resultURL.QueueUrl,
+					AttributeNames: aws.StringSlice([]string{
+						"SentTimestamp",
+					}),
+					MaxNumberOfMessages: aws.Int64(concurrentHandlerCount),
+					MessageAttributeNames: aws.StringSlice([]string{
+						"All",
+					}),
+					WaitTimeSeconds:   aws.Int64(timeout),
+					VisibilityTimeout: aws.Int64(10 /* seconds */),
+				})
 
-					if result.Messages != nil {
-						*options.Available_Workers -= 1
-					}
+				if result.Messages != nil {
+					b.Lock()
+					options.AvailableWorkers--
+					b.Unlock()
+				}
 
-					if err != nil {
-						log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
-						// Sleep for half a second
-						time.Sleep(time.Second / 2)
-						continue
-					}
+				if err != nil {
+					log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
+					// Sleep for half a second
+					time.Sleep(time.Second / 2)
+					continue
+				}
 
-					if options.AutoAck {
-						for _, msg := range result.Messages {
-							_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
-								QueueUrl:      resultURL.QueueUrl,
-								ReceiptHandle: msg.ReceiptHandle,
-							})
-							if err != nil {
-								log.WithError(err).Error("Failed to delete message")
-							}
-						}
-					}
-
-					for _, m := range result.Messages {
-						msg := new(broker.Message)
-						err := b.opts.Serializer.Unmarshal([]byte(*m.Body), msg)
-						if err != nil {
-							log.WithError(err).
-								Errorf("Failed to unmarshal message while handeling queue message")
-						}
-
-						handler(&publication{
-							svc:           svc,
-							topic:         topic,
-							m:             msg,
-							nm:            m,
-							queueUrl:      *resultURL.QueueUrl,
-							receiptHandle: *m.ReceiptHandle,
+				if options.AutoAck {
+					for _, msg := range result.Messages {
+						_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
+							QueueUrl:      resultURL.QueueUrl,
+							ReceiptHandle: msg.ReceiptHandle,
 						})
+						if err != nil {
+							log.WithError(err).Error("Failed to delete message")
+						}
 					}
+				}
+
+				for _, m := range result.Messages {
+					msg := new(broker.Message)
+					err := b.opts.Serializer.Unmarshal([]byte(*m.Body), msg)
+					if err != nil {
+						log.WithError(err).
+							Errorf("Failed to unmarshal message while handeling queue message")
+					}
+
+					handler(&publication{
+						svc:           svc,
+						topic:         topic,
+						m:             msg,
+						nm:            m,
+						queueUrl:      *resultURL.QueueUrl,
+						receiptHandle: *m.ReceiptHandle,
+					})
 				}
 			}
 		}

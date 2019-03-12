@@ -9,12 +9,12 @@ import (
 
 // Options ...
 type Options struct {
-	Endpoints         []string
-	Serializer        serializer.Serializer
-	Secure            bool
-	TLSConfig         *tls.Config
-	Context           context.Context
-  Available_Workers *int
+	Endpoints        []string
+	Serializer       serializer.Serializer
+	Secure           bool
+	TLSConfig        *tls.Config
+	Context          context.Context
+	AvailableWorkers int
 }
 
 // Option ...
@@ -58,10 +58,10 @@ type PublishOption func(*PublishOptions)
 
 // SubscribeOptions ...
 type SubscribeOptions struct {
-	AutoAck           bool
-	Queue             string
-	Context           context.Context
-  Available_Workers *int
+	AutoAck          bool
+	Queue            string
+	Context          context.Context
+	AvailableWorkers int
 }
 
 // SubscribeOption ...
