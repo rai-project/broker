@@ -96,6 +96,7 @@ func OnReceiveSubscribeMessageCallback(f func(*Message)) SubscribeOption {
 	}
 }
 
+// AfterReceiveSubscribeMessageCallback ...
 func AfterReceiveSubscribeMessageCallback(f func()) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.AfterReceiveMessageCallback = append(o.AfterReceiveMessageCallback, f)
