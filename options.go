@@ -82,18 +82,21 @@ func Queue(s string) SubscribeOption {
 	}
 }
 
+// BeforeReceiveSubscribeMessageCallback ...
 func BeforeReceiveSubscribeMessageCallback(f func()) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.BeforeReceiveMessageCallback = append(o.BeforeReceiveMessageCallback, f)
 	}
 }
 
+// OnReceiveSubscribeMessageCallback ...
 func OnReceiveSubscribeMessageCallback(f func(*Message)) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.OnReceiveMessageCallback = append(o.OnReceiveMessageCallback, f)
 	}
 }
 
+// AfterReceiveSubscribeMessageCallback ...
 func AfterReceiveSubscribeMessageCallback(f func()) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.AfterReceiveMessageCallback = append(o.AfterReceiveMessageCallback, f)
