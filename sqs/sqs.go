@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/jpillora/backoff"
 	"github.com/pkg/errors"
 	raiaws "github.com/rai-project/aws"
 	"github.com/rai-project/broker"
@@ -35,17 +36,8 @@ func New(opts ...broker.Option) (broker.Broker, error) {
 		o(&options)
 	}
 
-	//Set Available Workers
-	if availableWorkers, ok := options.Context.Value(availableWorkersKey).(int); ok {
-		options.AvailableWorkers = availableWorkers
-	} else {
-		options.AvailableWorkers = 1
-	}
-
-	var sess *session.Session
-	if s, ok := options.Context.Value(sessionKey).(*session.Session); ok {
-		sess = s
-	} else {
+	sess, ok := options.Context.Value(sessionKey{}).(*session.Session)
+	if !ok {
 		var err error
 		// Initialize a session that the SDK will use to load configuration,
 		// credentials, and region from the shared config file. (~/.aws/config).
@@ -140,32 +132,31 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 		Queue:   "",
 		Context: ctx.Background().
 			WithValue(
-				concurrentHandlerCountKey,
+				concurrentHandlerCountKey{},
 				DefaultConcurrentHandlerCount,
 			).
 			WithValue(
-				subscriptionTimeoutKey,
+				subscriptionTimeoutKey{},
 				DefaultSubscriptionTimeout,
 			),
-		AvailableWorkers: b.opts.AvailableWorkers,
 	}
 
 	for _, o := range opts {
 		o(&options)
 	}
 
-	timeout, ok := options.Context.Value(subscriptionTimeoutKey).(int64)
+	timeout, ok := options.Context.Value(subscriptionTimeoutKey{}).(int64)
 	if !ok {
 		timeout = DefaultSubscriptionTimeout
 	}
 
-	concurrentHandlerCount0, ok := options.Context.Value(concurrentHandlerCountKey).(int)
+	concurrentHandlerCount0, ok := options.Context.Value(concurrentHandlerCountKey{}).(int)
 	if !ok {
 		concurrentHandlerCount0 = DefaultConcurrentHandlerCount
 	}
 	concurrentHandlerCount := int64(concurrentHandlerCount0)
 
-	queueName, ok := b.opts.Context.Value(queueNameKey).(string)
+	queueName, ok := b.opts.Context.Value(queueNameKey{}).(string)
 	if !ok {
 		return nil, errors.New("cannot find queue name. make sure to set it when initializing sqs")
 	}
@@ -186,15 +177,22 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 	cancelCtx, cancelFunc := context.WithCancel(options.Context)
 
+	bkof := &backoff.Backoff{
+		Min:    100 * time.Millisecond,
+		Max:    10 * time.Minute,
+		Factor: 2,
+		Jitter: false,
+	}
+
 	go func() {
 		for {
 			select {
 			case <-cancelCtx.Done():
 				return
-			case options.AvailableWorkers <= 0:
-				time.Sleep(time.Second / 2)
-				continue
 			default:
+				for _, f := range options.BeforeReceiveMessageCallback {
+					f()
+				}
 				// Receive a message from the SQS queue with long polling enabled.
 				result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 					QueueUrl: resultURL.QueueUrl,
@@ -209,18 +207,14 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 					VisibilityTimeout: aws.Int64(10 /* seconds */),
 				})
 
-				if result.Messages != nil {
-					b.Lock()
-					options.AvailableWorkers--
-					b.Unlock()
-				}
-
 				if err != nil {
 					log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
 					// Sleep for half a second
-					time.Sleep(time.Second / 2)
+					time.Sleep(bkof.Duration())
 					continue
 				}
+
+				bkof.Reset()
 
 				if options.AutoAck {
 					for _, msg := range result.Messages {
@@ -242,14 +236,22 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 							Errorf("Failed to unmarshal message while handeling queue message")
 					}
 
-					handler(&publication{
+					pub := &publication{
 						svc:           svc,
 						topic:         topic,
 						m:             msg,
 						nm:            m,
 						queueUrl:      *resultURL.QueueUrl,
 						receiptHandle: *m.ReceiptHandle,
-					})
+					}
+					for _, f := range options.OnReceiveMessageCallback {
+						f(msg)
+					}
+					handler(pub)
+				}
+
+				for _, f := range options.BeforeReceiveMessageCallback {
+					f()
 				}
 			}
 		}
