@@ -165,6 +165,9 @@ func (b *rabbitmqBroker) Subscribe(topic string, handler broker.Handler, opts ..
 			case <-cancelCtx.Done():
 				return
 			default:
+				for _, f := range options.BeforeReceiveMessageCallback {
+					f()
+				}
 				ch, err := b.conn.Channel()
 				if err != nil {
 					log.WithError(err).Errorf("Failed to open a channel")
@@ -207,11 +210,19 @@ func (b *rabbitmqBroker) Subscribe(topic string, handler broker.Handler, opts ..
 						log.WithError(err).Errorf("Failed to unmarshal message while handeling queue message")
 					}
 
+					for _, f := range options.OnReceiveMessageCallback {
+						f(msg)
+					}
+
 					handler(&publication{
 						topic: topic,
 						m:     msg,
 						queue: queueName,
 					})
+				}
+
+				for _, f := range options.AfterReceiveMessageCallback {
+					f()
 				}
 			}
 		}
