@@ -9,12 +9,11 @@ import (
 
 // Options ...
 type Options struct {
-	Endpoints        []string
-	Serializer       serializer.Serializer
-	Secure           bool
-	TLSConfig        *tls.Config
-	Context          context.Context
-	AvailableWorkers int
+	Endpoints  []string
+	Serializer serializer.Serializer
+	Secure     bool
+	TLSConfig  *tls.Config
+	Context    context.Context
 }
 
 // Option ...
@@ -58,10 +57,12 @@ type PublishOption func(*PublishOptions)
 
 // SubscribeOptions ...
 type SubscribeOptions struct {
-	AutoAck          bool
-	Queue            string
-	Context          context.Context
-	AvailableWorkers int
+	AutoAck                      bool
+	Queue                        string
+	Context                      context.Context
+	BeforeReceiveMessageCallback []func()
+	OnReceiveMessageCallback     []func(*Message)
+	AfterReceiveMessageCallback  []func()
 }
 
 // SubscribeOption ...
@@ -78,5 +79,26 @@ func AutoAck(b bool) SubscribeOption {
 func Queue(s string) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.Queue = s
+	}
+}
+
+// BeforeReceiveSubscribeMessageCallback ...
+func BeforeReceiveSubscribeMessageCallback(f func()) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.BeforeReceiveMessageCallback = append(o.BeforeReceiveMessageCallback, f)
+	}
+}
+
+// OnReceiveSubscribeMessageCallback ...
+func OnReceiveSubscribeMessageCallback(f func(*Message)) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.OnReceiveMessageCallback = append(o.OnReceiveMessageCallback, f)
+	}
+}
+
+// AfterReceiveSubscribeMessageCallback ...
+func AfterReceiveSubscribeMessageCallback(f func()) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.AfterReceiveMessageCallback = append(o.AfterReceiveMessageCallback, f)
 	}
 }

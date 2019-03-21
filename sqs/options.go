@@ -8,14 +8,11 @@ import (
 	"github.com/rai-project/broker"
 )
 
-const (
-	sessionKey                = "github.com/rai-project/broker/sqs/session"
-	queueNameKey              = "github.com/rai-project/broker/sqs/queueName"
-	concurrentHandlerCountKey = "github.com/rai-project/broker/sqs/concurrentHandlerCount"
-	subscriptionTimeoutKey    = "github.com/rai-project/broker/sqs/subscriptionTimeout"
-	maxInFlightKey            = "github.com/rai-project/broker/sqs/maxInFlight"
-	availableWorkersKey       = "github.com/rai-project/broker/sqs/availableWorkers"
-)
+type sessionKey struct{}
+type queueNameKey struct{}
+type concurrentHandlerCountKey struct{}
+type subscriptionTimeoutKey struct{}
+type maxInFlightKey struct{}
 
 // DefaultConcurrentHandlerCount ...
 var (
@@ -26,41 +23,34 @@ var (
 // Session ...
 func Session(sess *session.Session) broker.Option {
 	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, sessionKey, sess)
+		o.Context = context.WithValue(o.Context, sessionKey{}, sess)
 	}
 }
 
 // QueueName ...
 func QueueName(q string) broker.Option {
 	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, queueNameKey, q)
+		o.Context = context.WithValue(o.Context, queueNameKey{}, q)
 	}
 }
 
 // ConcurrentHandlerCount ...
 func ConcurrentHandlerCount(n int) broker.SubscribeOption {
 	return func(o *broker.SubscribeOptions) {
-		o.Context = context.WithValue(o.Context, concurrentHandlerCountKey, n)
+		o.Context = context.WithValue(o.Context, concurrentHandlerCountKey{}, n)
 	}
 }
 
 // SubscriptionTimeout ...
 func SubscriptionTimeout(d time.Duration) broker.SubscribeOption {
 	return func(o *broker.SubscribeOptions) {
-		o.Context = context.WithValue(o.Context, subscriptionTimeoutKey, int64(d.Seconds()))
+		o.Context = context.WithValue(o.Context, subscriptionTimeoutKey{}, int64(d.Seconds()))
 	}
 }
 
 // MaxInFlight ...
 func MaxInFlight(n int) broker.Option {
 	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, maxInFlightKey, n)
-	}
-}
-
-// Available workers
-func AvailableWorkers(n int) broker.Option {
-	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, availableWorkersKey, n)
+		o.Context = context.WithValue(o.Context, maxInFlightKey{}, n)
 	}
 }
