@@ -63,6 +63,8 @@ type SubscribeOptions struct {
 	BeforeReceiveMessageCallback []func()
 	OnReceiveMessageCallback     []func(*Message)
 	AfterReceiveMessageCallback  []func()
+	AvailableWorkersCount        func() int64
+	DecrementAvailableWorkers    func()
 }
 
 // SubscribeOption ...
@@ -100,5 +102,19 @@ func OnReceiveSubscribeMessageCallback(f func(*Message)) SubscribeOption {
 func AfterReceiveSubscribeMessageCallback(f func()) SubscribeOption {
 	return func(o *SubscribeOptions) {
 		o.AfterReceiveMessageCallback = append(o.AfterReceiveMessageCallback, f)
+	}
+}
+
+// AvailableWorkers Count ...
+func AvailableWorkersCountSubscribe(f func() int64) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.AvailableWorkersCount = f
+	}
+}
+
+// Decrement AvailableWorkers Count ...
+func DecrementAvailableWorkers(f func()) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.DecrementAvailableWorkers = f
 	}
 }

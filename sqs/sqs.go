@@ -190,68 +190,63 @@ func (b *sqsBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 			case <-cancelCtx.Done():
 				return
 			default:
-				for _, f := range options.BeforeReceiveMessageCallback {
-					f()
-				}
-				// Receive a message from the SQS queue with long polling enabled.
-				result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
-					QueueUrl: resultURL.QueueUrl,
-					AttributeNames: aws.StringSlice([]string{
-						"SentTimestamp",
-					}),
-					MaxNumberOfMessages: aws.Int64(concurrentHandlerCount),
-					MessageAttributeNames: aws.StringSlice([]string{
-						"All",
-					}),
-					WaitTimeSeconds:   aws.Int64(timeout),
-					VisibilityTimeout: aws.Int64(10 /* seconds */),
-				})
+				x := options.AvailableWorkersCount()
+				if x > 0 {
+					// Receive a message from the SQS queue with long polling enabled.
+					result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+						QueueUrl: resultURL.QueueUrl,
+						AttributeNames: aws.StringSlice([]string{
+							"SentTimestamp",
+						}),
+						MaxNumberOfMessages: aws.Int64(concurrentHandlerCount),
+						MessageAttributeNames: aws.StringSlice([]string{
+							"All",
+						}),
+						WaitTimeSeconds:   aws.Int64(timeout),
+						VisibilityTimeout: aws.Int64(10 /* seconds */),
+					})
 
-				if err != nil {
-					log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
-					// Sleep for half a second
-					time.Sleep(bkof.Duration())
-					continue
-				}
+					if result.Messages != nil {
+						options.DecrementAvailableWorkers()
+					}
 
-				bkof.Reset()
+					if err != nil {
+						log.Errorf("Unable to receive message from queue %q, %v.", topic, err)
+						// Sleep for half a second
+						time.Sleep(bkof.Duration())
+						continue
+					}
 
-				if options.AutoAck {
-					for _, msg := range result.Messages {
-						_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
-							QueueUrl:      resultURL.QueueUrl,
-							ReceiptHandle: msg.ReceiptHandle,
-						})
-						if err != nil {
-							log.WithError(err).Error("Failed to delete message")
+					if options.AutoAck {
+						for _, msg := range result.Messages {
+							_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
+								QueueUrl:      resultURL.QueueUrl,
+								ReceiptHandle: msg.ReceiptHandle,
+							})
+							if err != nil {
+								log.WithError(err).Error("Failed to delete message")
+							}
 						}
 					}
-				}
 
-				for _, m := range result.Messages {
-					msg := new(broker.Message)
-					err := b.opts.Serializer.Unmarshal([]byte(*m.Body), msg)
-					if err != nil {
-						log.WithError(err).
-							Errorf("Failed to unmarshal message while handeling queue message")
-					}
+					for _, m := range result.Messages {
+						msg := new(broker.Message)
+						err := b.opts.Serializer.Unmarshal([]byte(*m.Body), msg)
+						if err != nil {
+							log.WithError(err).
+								Errorf("Failed to unmarshal message while handeling queue message")
+						}
 
-					pub := &publication{
-						svc:           svc,
-						topic:         topic,
-						m:             msg,
-						nm:            m,
-						queueUrl:      *resultURL.QueueUrl,
-						receiptHandle: *m.ReceiptHandle,
+						pub := &publication{
+							svc:           svc,
+							topic:         topic,
+							m:             msg,
+							nm:            m,
+							queueUrl:      *resultURL.QueueUrl,
+							receiptHandle: *m.ReceiptHandle,
+						}
+						handler(pub)
 					}
-					for _, f := range options.OnReceiveMessageCallback {
-						f(msg)
-					}
-					handler(pub)
-				}
-
-				for _, f := range options.BeforeReceiveMessageCallback {
-					f()
 				}
 			}
 		}
